@@ -207,7 +207,9 @@ class Word:
 
 class Dictionary:
     def __init__(self):
-        with open(r"D:\Programming\Python\Typing Tutor\Words.txt", 'r') as f:
+        filedir = "/".join(__file__.replace("\\", "/").split("/")[:-1])
+    
+        with open(f"{filedir}/Words.txt", 'r') as f:
             words = f.read().split("\n")
             
         self.words = {}
