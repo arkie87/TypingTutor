@@ -1,4 +1,4 @@
-from tkinter import Tk, Frame, Button, Label, StringVar
+from tkinter import Tk, Toplevel, Frame, Button, Label, StringVar
 from random import choice, randrange
 from time import time as tic
 
@@ -12,16 +12,21 @@ SCREEN_HEIGHT = 800
 BACKGROUND_COLOR = "blue"
 FONT = ("Comic Sans", 16)
 
+def __dir__():
+    return "/".join(__file__.replace("\\", "/").split("/")[:-1])
+
 class TypingTutor:
     def __init__(self):
         self.root = Tk()
         self.root.title("Arkie's Typing Tutor")
         self.root.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+        self.frame = Frame(self.root)
         
         self.main_menu()
         self.root.mainloop()
         
     def main_menu(self, score=0):
+        self.frame.destroy()
         self.frame = Frame(self.root)
         self.label = Label(self.frame, text=f"High Score: {score}")
         self.new_button = Button(self.frame, text="New Game", command=self.new_game)
@@ -51,18 +56,22 @@ class Game:
         self.frame = Frame(self.root, width=SCREEN_WIDTH, height=SCREEN_HEIGHT)
         self.window = Frame(self.frame, width=SCREEN_WIDTH-100, height=SCREEN_HEIGHT-100, bg="blue")
         self.score_var = StringVar(self.root)
+        self.missed_var = StringVar(self.root, "0 Words Missed")
         self.enemies_var = StringVar(self.root)
         self.score_label = Label(self.frame, textvariable=self.score_var)
+        self.missed_label = Label(self.frame, textvariable=self.missed_var)
         self.enemies_label = Label(self.frame, textvariable=self.enemies_var)
         self.quit_label = Label(self.frame, text="Press Esc to Quit")
         
         self.frame.pack()
         self.score_label.grid(row=0, column=0)
-        self.enemies_label.grid(row=0, column=1)
-        self.quit_label.grid(row=0, column=2)
-        self.window.grid(row=1, column=0, columnspan=3)
+        self.missed_label.grid(row=0, column=1)
+        self.enemies_label.grid(row=0, column=2)
+        self.quit_label.grid(row=0, column=3)
+        self.window.grid(row=1, column=0, columnspan=4)
         
         
+        self.missed_words = []
         self.dictionary = Dictionary()
         self.words = []
         self.text = ""
@@ -100,15 +109,17 @@ class Game:
         return word
         
     def keypress(self, event):
-        text = self.text + event.char
-        for word in self.words:
-            word.check(text)
-            if word.index > 0:
-                self.text = text
-                self.word = word
-                break
-            else:
-                self.clear_word()
+        char = event.char
+        if char.isalpha() or char == " ":
+            text = self.text + event.char
+            for word in self.words:
+                word.check(text)
+                if word.index > 0:
+                    self.text = text
+                    self.word = word
+                    break
+                else:
+                    self.clear_word()
         
         if self.word and self.word.destroyed:
             self.clear_word()
@@ -123,6 +134,8 @@ class Game:
         self.check_win()
         
     def missed(self, word):
+        self.missed_words += [word.string.strip()]
+        self.missed_var.set(f"{len(self.missed_words)} Words Missed")
         self.words.remove(word)
         self.score += word.score
         self.check_win()
@@ -165,12 +178,33 @@ class Game:
         
     def exit(self):
         self.frame.destroy()
-        self.parent.main_menu(self.max_score)
+        EndGame(self)
 
+
+class EndGame:
+    def __init__(self, game):
+        self.root = Toplevel()
+        self.game = game
+        Label(self.root, text="Game Over!").pack()
+        Label(self.root, text=f"Score: {self.game.score}").pack()
+        Label(self.root, text=f"{len(game.missed_words)} Missed words").pack()
+        Label(self.root, text=f"{game.missed_words}").pack()
+        Button(self.root, text="Save Result to Disk", command=self.save).pack()
+        Button(self.root, text="Quit to main menu", command=self.quit).pack()
+        
+    def save(self):
+        text = f"\nScore: {self.game.score}\nMissed Words: {','.join(self.game.missed_words)}"
+        with open(f"{__dir__()}/Results.txt", 'a') as f:
+            f.write(text)
+        
+    def quit(self):
+        self.root.destroy()
+        self.game.parent.main_menu(self.game.score)
+        
 
 class Dictionary:
     def __init__(self):
-        self.filedir = "/".join(__file__.replace("\\", "/").split("/")[:-1])
+        self.filedir = __dir__()
     
         with open(f"{self.filedir}/Words.txt", 'r') as f:
             words = f.read().split("\n")
@@ -234,7 +268,7 @@ class Word:
                 self.missed()
             else:
                 self.frame.place(relx=self.x/1000, rely=self.y/1000)
-                self.label.config(text=self.string[:self.index], fg="red")
+                self.label.config(text=self.string[:self.index], fg="lime")
                 self.label2.config(text=self.string[self.index:])
                 self.root.after(DELAY, self.tick)
         
