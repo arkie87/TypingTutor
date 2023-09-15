@@ -1,4 +1,4 @@
-from tkinter import Tk, Toplevel, Frame, Button, Label, StringVar
+from tkinter import Tk, Toplevel, Frame, Button, Label, Text, StringVar
 from random import choice, randrange
 from time import time as tic
 
@@ -14,6 +14,33 @@ FONT = ("Comic Sans", 16)
 
 def __dir__():
     return "/".join(__file__.replace("\\", "/").split("/")[:-1])
+    
+def instructions():
+    return ("""Instructions:
+    Type in words you see falling before they hit the bottom.
+    Any mistake will require typing the word from scratch.
+    Hit spacebar to destroy the typed word.
+
+Gameplay:
+    Words will spawn in at random intervals.
+    Words that spawn in at longer intervals will fall faster.
+    Word length will increase after each 100 points scored.
+
+Scoring:
+    More points are awarded for:
+    (1) Longer, faster falling words
+    (2) Words that are typed (start to finish) faster
+    (3) Words that are defeated closest to spawn
+    
+    Points are deducted when:
+    (1) A word hit the bottom.
+    (-) The amount of points is proportional to the word value.
+
+Game Ending:
+    The game ends when either:
+    (1) points goes negative, or
+    (2) word count reaches zero.
+""")
 
 class TypingTutor:
     def __init__(self):
@@ -31,10 +58,16 @@ class TypingTutor:
         self.label = Label(self.frame, text=f"High Score: {score}")
         self.new_button = Button(self.frame, text="New Game", command=self.new_game)
         self.quit_button = Button(self.frame, text="Quit", command=self.quit_game)
+        self.instructions = Text(self.frame)
+        self.instructions.delete(1.0, "end")
+        self.instructions.insert(1.0, instructions())
+        self.instructions.config(state="disabled")
+
         self.frame.pack()
         self.label.pack()
         self.new_button.pack()
         self.quit_button.pack()
+        self.instructions.pack()
         
     def new_game(self):
         self.frame.destroy()
@@ -186,20 +219,20 @@ class EndGame:
         self.root = Toplevel()
         self.game = game
         Label(self.root, text="Game Over!").pack()
-        Label(self.root, text=f"Score: {self.game.score}").pack()
+        Label(self.root, text=f"Score: {self.game.max_score}").pack()
         Label(self.root, text=f"{len(game.missed_words)} Missed words").pack()
         Label(self.root, text=f"{game.missed_words}").pack()
         Button(self.root, text="Save Result to Disk", command=self.save).pack()
         Button(self.root, text="Quit to main menu", command=self.quit).pack()
         
     def save(self):
-        text = f"\nScore: {self.game.score}\nMissed Words: {','.join(self.game.missed_words)}"
+        text = f"\nScore: {self.game.max_score}\nMissed Words: {','.join(self.game.missed_words)}"
         with open(f"{__dir__()}/Results.txt", 'a') as f:
             f.write(text)
         
     def quit(self):
         self.root.destroy()
-        self.game.parent.main_menu(self.game.score)
+        self.game.parent.main_menu(self.game.max_score)
         
 
 class Dictionary:
@@ -207,19 +240,18 @@ class Dictionary:
         self.filedir = __dir__()
     
         with open(f"{self.filedir}/Words.txt", 'r') as f:
-            words = f.read().split("\n")
+            lines = f.read().split("\n")
             
         self.words = {}
-        for word in words:
-            if len(word) not in self.words:
-                self.words[len(word)] = []
-                
-            self.words[len(word)] += [word]
+        for n, line in enumerate(lines, start=3):
+            self.words[n] = line.split(",")
+            
+        self.save()
     
     def save(self):
         text = []
         for n in range(3,10):
-            text += [*self.words[n]]
+            text += [",".join(self.words[n])]
         text = "\n".join(text)
         
         with open(f"{self.filedir}/Words.txt", "w") as f:
