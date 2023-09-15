@@ -28,7 +28,7 @@ Gameplay:
 
 Scoring:
     More points are awarded for:
-    (1) Longer, faster falling words
+    (1) Longer words
     (2) Words that are typed (start to finish) faster
     (3) Words that are defeated closest to spawn
     
@@ -321,10 +321,10 @@ class Word:
             ti = self.times[0]
             tf = self.times[-1]
 
-            creation_time_multiplier = 1 + 1 /(ti-t0)
-            typing_speed_multiplier = 1 + 0.3 /(tf-ti)
+            creation_time_multiplier = 1 + 1 / max(0.3, (ti-t0))
+            typing_speed_multiplier = 1 + 0.1 * len(self.string)/(tf-ti) 
                 
-            self.score = round(len(self.string) * self.speed * creation_time_multiplier * typing_speed_multiplier)
+            self.score = round(len(self.string) * creation_time_multiplier * typing_speed_multiplier)
         else:
             self.score = - round(10 * len(self.string) / self.speed)
 
